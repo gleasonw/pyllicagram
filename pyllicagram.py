@@ -39,8 +39,7 @@ def pyllicagram(
     somme: bool = False,
 ):
     if not isinstance(recherche, str) and not isinstance(recherche, list):
-        raise ValueError(
-            "La recherche doit être une chaîne de caractères ou une liste")
+        raise ValueError("La recherche doit être une chaîne de caractères ou une liste")
     if not isinstance(recherche, list):
         recherche = [recherche]
     assert corpus in [
@@ -85,7 +84,14 @@ def pyllicagram(
             .reset_index()
         )
         result["gram"] = "+".join(recherche)
-    result["ratio"] = result.n.values / result.total.values
+
+    # ensure ratio is not NaN
+    def calc_ratio(row):
+        if row.total == 0:
+            return 0
+        return row.n / row.total
+
+    result["ratio"] = result.apply(lambda row: calc_ratio(row), axis=1)
     return result
 
 
@@ -119,7 +125,14 @@ if __name__ == "__main__":
     resolution = args.get("-r", "default")
 
     # Call API
-    results = pyllicagram(recherche, corpus, debut, fin, resolution, somme)
+    results = pyllicagram(
+        recherche=recherche,
+        corpus=corpus,
+        debut=debut,
+        fin=fin,
+        resolution=resolution,
+        somme=somme,
+    )
 
     # Write results into file
     results.to_csv("results.csv", sep="\t")
