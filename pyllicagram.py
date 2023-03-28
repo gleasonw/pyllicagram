@@ -8,12 +8,16 @@ import sys
 import os
 import collections
 import ssl
+from typing import List, Literal
+
 ssl._create_default_https_context = ssl._create_unverified_context
 # import pandas
 try:
     import pandas as pd
+
     pd.read_csv(
-        f"https://shiny.ens-paris-saclay.fr/guni/corpus=presse_test_from=1789_to=1950")
+        f"https://shiny.ens-paris-saclay.fr/guni/corpus=presse_test_from=1789_to=1950"
+    )
     print(sys.executable)
 except:
     print("install pandas...")
@@ -26,35 +30,62 @@ except:
 # API CALL
 
 
-def pyllicagram(recherche, corpus="presse", debut=1789, fin=1950, resolution="default", somme=False):
+def pyllicagram(
+    recherche: List[str] | str,
+    corpus: Literal["lemonde", "livres", "presse"] = "presse",
+    debut: int = 1789,
+    fin: int = 1950,
+    resolution: Literal["default", "annee", "mois"] = "default",
+    somme: bool = False,
+):
     if not isinstance(recherche, str) and not isinstance(recherche, list):
         raise ValueError(
             "La recherche doit être une chaîne de caractères ou une liste")
     if not isinstance(recherche, list):
         recherche = [recherche]
-    assert corpus in ["lemonde", "livres",
-                      "presse"], 'Vous devez choisir le corpus parmi "lemonde","livres" et "presse"'
+    assert corpus in [
+        "lemonde",
+        "livres",
+        "presse",
+    ], 'Vous devez choisir le corpus parmi "lemonde","livres" et "presse"'
     assert resolution in [
-        "default", "annee", "mois"], 'Vous devez choisir la résolution parmi "default", "annee" ou "mois"'
+        "default",
+        "annee",
+        "mois",
+    ], 'Vous devez choisir la résolution parmi "default", "annee" ou "mois"'
+    result = pd.DataFrame()
     for gram in recherche:
         gram = gram.replace(" ", "%20")
         df = pd.read_csv(
-            f"https://shiny.ens-paris-saclay.fr/guni/corpus={corpus}_{gram}_from={debut}_to={fin}")
+            f"https://shiny.ens-paris-saclay.fr/guni/corpus={corpus}_{gram}_from={debut}_to={fin}"
+        )
         if resolution == "mois" and corpus != "livres":
-            df = df.groupby(["annee", "mois", "gram"]).agg(
-                {'n': 'sum', 'total': 'sum'}).reset_index()
+            df = (
+                df.groupby(["annee", "mois", "gram"])
+                .agg({"n": "sum", "total": "sum"})
+                .reset_index()
+            )
         if resolution == "annee":
-            df = df.groupby(["annee", "gram"]).agg(
-                {'n': 'sum', 'total': 'sum'}).reset_index()
-        if 'result' in locals():
-            result = pd.concat([result, df])
-        else:
-            result = df
+            df = (
+                df.groupby(["annee", "gram"])
+                .agg({"n": "sum", "total": "sum"})
+                .reset_index()
+            )
+        result = pd.concat([result, df])
     if somme:
-        result = result.groupby(["annee", *(("mois",) if "mois" in result.columns else ()), *(
-            ("jour",) if 'jour' in result.columns else ())]).agg({'n': 'sum', 'total': 'mean'}).reset_index()
+        result = (
+            result.groupby(
+                [
+                    "annee",
+                    *(("mois",) if "mois" in result.columns else ()),
+                    *(("jour",) if "jour" in result.columns else ()),
+                ]
+            )
+            .agg({"n": "sum", "total": "mean"})
+            .reset_index()
+        )
         result["gram"] = "+".join(recherche)
-    result["ratio"] = result.n.values/result.total.values
+    result["ratio"] = result.n.values / result.total.values
     return result
 
 
@@ -65,8 +96,8 @@ def get_args():
     for i in range(len(sys.argv)):
         if sys.argv[i][0] == "-":
             try:
-                if sys.argv[i+1][0] != "-":
-                    args[sys.argv[i]] = sys.argv[i+1]
+                if sys.argv[i + 1][0] != "-":
+                    args[sys.argv[i]] = sys.argv[i + 1]
                 else:
                     args[sys.argv[i]] = True
             except:
@@ -76,8 +107,7 @@ def get_args():
     return args
 
 
-if __name__ == '__main__':
-
+if __name__ == "__main__":
     # Get command line args
     args = get_args()
     recherche = args[1]
@@ -92,4 +122,4 @@ if __name__ == '__main__':
     results = pyllicagram(recherche, corpus, debut, fin, resolution, somme)
 
     # Write results into file
-    results.to_csv('results.csv', sep="\t")
+    results.to_csv("results.csv", sep="\t")
