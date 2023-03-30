@@ -9,6 +9,7 @@ import os
 import collections
 import ssl
 from typing import List, Literal
+from urllib.parse import quote
 
 ssl._create_default_https_context = ssl._create_unverified_context
 # import pandas
@@ -54,9 +55,9 @@ def pyllicagram(
     ], 'Vous devez choisir la résolution parmi "default", "annee" ou "mois"'
     result = pd.DataFrame()
     for gram in recherche:
-        gram = gram.replace(" ", "%20")
+        format_gram = quote(gram, encoding="utf-8")
         df = pd.read_csv(
-            f"https://shiny.ens-paris-saclay.fr/guni/corpus={corpus}_{gram}_from={debut}_to={fin}"
+            f"https://shiny.ens-paris-saclay.fr/guni/corpus={corpus}_{format_gram}_from={debut}_to={fin}"
         )
         if resolution == "mois" and corpus != "livres":
             df = (
