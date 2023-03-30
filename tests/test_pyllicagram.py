@@ -15,8 +15,10 @@ def assert_float(x):
 def test_pyllica_special_chars():
     with pytest.raises(ValueError):
         pyllicagram(1)
-    res = pyllicagram("création")
-    res["ratio"].apply(lambda x: assert_float(x))
+    res_one = pyllicagram("création")
+    res_two = pyllicagram("very-weird")
+    res_one["ratio"].apply(lambda x: assert_float(x))
+    res_two["ratio"].apply(lambda x: assert_float(x))
 
 
 def test_pyllica_multiple_words():
@@ -37,6 +39,6 @@ def test_pyllica_spaces():
 
 
 def test_pyllica_wide_range():
-    """Test that a wide range of years works."""
+    """Test that a wide range of years works does not create nans."""
     res = pyllicagram("création développement", debut=1000, fin=2000)
     res["ratio"].apply(lambda x: assert_float(x))
