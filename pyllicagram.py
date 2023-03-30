@@ -6,7 +6,6 @@
 #
 import sys
 import os
-import collections
 import ssl
 from typing import List, Literal
 from urllib.parse import quote
@@ -87,7 +86,7 @@ def pyllicagram(
         result["gram"] = "+".join(recherche)
 
     # ensure ratio is not NaN
-    def calc_ratio(row):
+    def calc_ratio(row: pd.Series):
         if row.total == 0:
             return 0
         return row.n / row.total
