@@ -4,11 +4,11 @@
 # pyllicagram.py:
 #    Un micro package python pour importer des données de [Gallicagram]
 #
-import urllib
 import sys
 import os
-import collections
 import ssl
+from typing import List, Literal
+from urllib.parse import quote
 
 ssl._create_default_https_context = ssl._create_unverified_context
 # import pandas
@@ -26,11 +26,17 @@ except:
     os.system(sys.executable + " " + " ".join(sys.argv))
     exit()
 
-
 # ------------------------
 # API CALL
+
+
 def pyllicagram(
-    recherche, corpus="presse", debut=1789, fin=1950, resolution="default", somme=False
+    recherche: List[str] | str,
+    corpus: Literal["lemonde", "livres", "presse"] = "presse",
+    debut: int = 1789,
+    fin: int = 1950,
+    resolution: Literal["default", "annee", "mois"] = "default",
+    somme: bool = False,
 ):
     if not isinstance(recherche, str) and not isinstance(recherche, list):
         raise ValueError("La recherche doit être une chaîne de caractères ou une liste")
@@ -46,11 +52,11 @@ def pyllicagram(
         "annee",
         "mois",
     ], 'Vous devez choisir la résolution parmi "default", "annee" ou "mois"'
+    result = pd.DataFrame()
     for gram in recherche:
-        gram = urllib.parse.quote_plus(gram.lower()).replace("-", " ").replace("+", " ")
-        gram = gram.replace(" ", "%20")
+        format_gram = quote(gram, encoding="utf-8")
         df = pd.read_csv(
-            f"https://shiny.ens-paris-saclay.fr/guni/corpus={corpus}_{gram}_from={debut}_to={fin}"
+            f"https://shiny.ens-paris-saclay.fr/guni/corpus={corpus}_{format_gram}_from={debut}_to={fin}"
         )
         if resolution == "mois" and corpus != "livres":
             df = (
@@ -64,10 +70,7 @@ def pyllicagram(
                 .agg({"n": "sum", "total": "sum"})
                 .reset_index()
             )
-        if "result" in locals():
-            result = pd.concat([result, df])
-        else:
-            result = df
+        result = pd.concat([result, df])
     if somme:
         result = (
             result.groupby(
@@ -81,5 +84,55 @@ def pyllicagram(
             .reset_index()
         )
         result["gram"] = "+".join(recherche)
-    result["ratio"] = result.n.values / result.total.values
+
+    # ensure ratio is not NaN
+    def calc_ratio(row: pd.Series):
+        if row.total == 0:
+            return 0
+        return row.n / row.total
+
+    result["ratio"] = result.apply(lambda row: calc_ratio(row), axis=1)
     return result
+
+
+# ------------------------
+# COMMAND LINE HANDLER
+def get_args():
+    args = {}
+    for i in range(len(sys.argv)):
+        if sys.argv[i][0] == "-":
+            try:
+                if sys.argv[i + 1][0] != "-":
+                    args[sys.argv[i]] = sys.argv[i + 1]
+                else:
+                    args[sys.argv[i]] = True
+            except:
+                args[sys.argv[i]] = True
+        else:
+            args[i] = sys.argv[i]
+    return args
+
+
+if __name__ == "__main__":
+    # Get command line args
+    args = get_args()
+    recherche = args[1]
+    somme = args.get("-s", "+" in recherche)
+    recherche = recherche.replace(",", "+").split("+")
+    corpus = args.get("-c", "presse")
+    debut = args.get("-d", 1789)
+    fin = args.get("-f", 1950)
+    resolution = args.get("-r", "default")
+
+    # Call API
+    results = pyllicagram(
+        recherche=recherche,
+        corpus=corpus,
+        debut=debut,
+        fin=fin,
+        resolution=resolution,
+        somme=somme,
+    )
+
+    # Write results into file
+    results.to_csv("results.csv", sep="\t")

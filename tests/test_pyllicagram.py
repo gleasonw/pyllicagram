@@ -1,5 +1,5 @@
 import pytest
-from pyllicagram import pyllicagram
+from src.pyllicagram import pyllicagram
 
 # a few basic tests
 # run `python -m pytest` in the root directory of the project
