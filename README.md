@@ -15,7 +15,7 @@ $ cd pyllicagram
 Vous pouvez maintenant lancer python (dans ce directory!)
 
 ## Usage dans python
-Le package contient trois fonctions, qui correspondent aux trois routes de l'API décrites [ici]](https://regicid.github.io/api) : pyllicagram (correspondant à la route query), contain et joker (correspondant aux routes éponymes). 
+Le package contient trois fonctions, qui correspondent aux trois routes de l'API décrites [ici](https://regicid.github.io/api) : pyllicagram (correspondant à la route query), contain et joker (correspondant aux routes éponymes). 
 
 Importez les fonctions avec :
 ```python
